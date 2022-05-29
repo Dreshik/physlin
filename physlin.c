@@ -13,6 +13,15 @@ static ssize_t physlin_read_proc(struct file* filp, char* buf, size_t count, lof
 	int len = sizeof(answer_str);
 	ssize_t ret = len;
 
+	snprintf(answer_str, sizeof(answer_str), "0x%X\n", reg_value);
+
+	if (*offp >= len || copy_to_user(buf, answer_str, len)) {
+		ret = 0;
+		return ret;
+	}
+
+	*offp += len;
+
 	return ret;
 }
 
