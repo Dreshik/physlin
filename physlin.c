@@ -5,6 +5,7 @@
 #define PROC_ENTRY_PATH "physlin"
 
 static struct proc_dir_entry* physlin_entry = NULL;
+static u32 reg_value = 0;
 
 static ssize_t physlin_read_proc(struct file* filp, char* buf, size_t count, loff_t* offp)
 {
@@ -15,8 +16,49 @@ static ssize_t physlin_read_proc(struct file* filp, char* buf, size_t count, lof
 	return ret;
 }
 
+static int read_reg(u32 physical_addr, u32* reg)
+{
+	void __iomem *reg_addr_virtyal = ioremap(physical_addr, PAGE_SIZE);
+
+	if (!reg_addr_virtyal) {
+		printk(KERN_ERR "<%s> can't ioremap physical addr %u", __func__, physical_addr);
+		return -1;
+	}
+
+	*reg = ioread32(reg_addr_virtyal);
+	iounmap(reg_addr_virtyal);
+
+	return 0;
+}
+
 static ssize_t physlin_write_proc(struct file* filp, const char* buf,size_t count, loff_t* offp)
 {
+	char register_str[64] = "";
+	size_t size;
+	u32 physical_addr;
+	u32 reg_val;
+
+	size = sizeof(register_str);
+	if (count > size)
+		size = count;
+
+	if (copy_from_user(register_str, buf, size)) {
+		printk(KERN_ERR "<%s> can't copy str from user", __func__);
+		return -EFAULT;
+	}
+
+	if (kstrtou32(register_str, 0, &physical_addr)) {
+		printk(KERN_ERR "<%s> can't convert str to u32", __func__);
+		return -EINVAL;
+	}
+
+	if (read_reg(physical_addr, &reg_val)) {
+		printk(KERN_ERR "<%s> can't read register\n", __func__);
+		return -EINVAL;
+	}
+
+	reg_value = reg_val;
+
 	return count;
 }
 
