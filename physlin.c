@@ -40,32 +40,46 @@ static int read_reg(u32 physical_addr, u32* reg)
 	return 0;
 }
 
-static ssize_t physlin_write_proc(struct file* filp, const char* buf,size_t count, loff_t* offp)
+static int read_reg_by_str(char* str, u32* reg_val)
 {
-	char register_str[64] = "";
-	size_t size;
 	u32 physical_addr;
-	u32 reg_val;
 
-	size = sizeof(register_str);
-	if (count > size)
-		size = count;
-
-	if (copy_from_user(register_str, buf, size)) {
-		printk(KERN_ERR "<%s> can't copy str from user", __func__);
-		return -EFAULT;
-	}
-
-	register_str[count] = '\0';
-
-	if (kstrtou32(register_str, 0, &physical_addr)) {
+	if (kstrtou32(str, 0, &physical_addr)) {
 		printk(KERN_ERR "<%s> can't convert str to u32", __func__);
 		return -EINVAL;
 	}
 
-	if (read_reg(physical_addr, &reg_val)) {
+	if (read_reg(physical_addr, reg_val)) {
 		printk(KERN_ERR "<%s> can't read register\n", __func__);
 		return -EINVAL;
+	}
+
+	return 0;
+}
+
+
+static ssize_t physlin_write_proc(struct file* filp, const char* buf,size_t count, loff_t* offp)
+{
+	char data_from_user[64] = "";
+	size_t size;
+	u32 reg_val;
+	int ret;
+
+	size = sizeof(data_from_user);
+	if (count > size)
+		size = count;
+
+	if (copy_from_user(data_from_user, buf, size)) {
+		printk(KERN_ERR "<%s> can't copy str from user", __func__);
+		return -EFAULT;
+	}
+
+	data_from_user[count] = '\0';
+
+	ret = read_reg_by_str(data_from_user, &reg_val);
+	if (ret) {
+		printk(KERN_ERR "<%s> can't read reg by str", __func__);
+		return ret;
 	}
 
 	reg_value = reg_val;
