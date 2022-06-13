@@ -56,6 +56,8 @@ static ssize_t physlin_write_proc(struct file* filp, const char* buf,size_t coun
 		return -EFAULT;
 	}
 
+	register_str[count] = '\0';
+
 	if (kstrtou32(register_str, 0, &physical_addr)) {
 		printk(KERN_ERR "<%s> can't convert str to u32", __func__);
 		return -EINVAL;
