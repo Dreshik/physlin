@@ -1,11 +1,83 @@
 #include <linux/module.h>
 #include <linux/proc_fs.h>
 #include <asm/io.h>
+#include <linux/slab.h>
 
 #define PROC_ENTRY_PATH "physlin"
+#define ADDR_AND_VAL_SEPARATOR 'W'
 
 static struct proc_dir_entry* physlin_entry = NULL;
 static u32 reg_value = 0;
+
+static int str_containt_addr_and_val(const char* str)
+{
+	int i = 0;
+	while(str[i] != '\0') {
+		if (str[i] == ADDR_AND_VAL_SEPARATOR)
+			return 1;
+		i++;
+	}
+
+	return 0;
+}
+
+static int get_addr_and_val_from_str(const char* str, u32* addr, u32* val)
+{
+	char* addr_str = kmalloc(16, GFP_KERNEL);
+	char* val_str  = kmalloc(16, GFP_KERNEL);
+	int j = 0, i = 0;
+
+	for (; str[i+1] != ADDR_AND_VAL_SEPARATOR && str[i] != '\0'; i++)
+		addr_str[i] = str[i];
+	addr_str[i+1] = '\0';
+
+	i += 3;
+	for (; str[i] != '\0'; i++, j++)
+		val_str[j] = str[i];
+	val_str[j+1] = '\0';
+
+	if (kstrtou32(addr_str, 0, addr)) {
+		printk(KERN_ERR "<%s> can't convert str to u32", __func__);
+		kfree(addr_str);
+		kfree(val_str);
+		return -EINVAL;
+	}
+
+	if (kstrtou32(val_str, 0, val)) {
+		printk(KERN_ERR "<%s> can't convert str to u32", __func__);
+		kfree(addr_str);
+		kfree(val_str);
+		return -EINVAL;
+	}
+
+	kfree(addr_str);
+	kfree(val_str);
+	return 0;
+}
+
+static int write_val_in_reg_by_str(const char* str)
+{
+	void __iomem *reg_addr_virtyal;
+	u32 physical_addr, reg_val;
+
+	if (get_addr_and_val_from_str(str, &physical_addr, &reg_val)) {
+		printk(KERN_ERR "<%s> can't parse addr and val from str", __func__);
+		return -EINVAL;
+	}
+
+	reg_addr_virtyal = ioremap(physical_addr, PAGE_SIZE);
+
+	if (!reg_addr_virtyal) {
+		printk(KERN_ERR "<%s> can't ioremap physical addr %u", __func__, physical_addr);
+		return -1;
+	}
+
+	iowrite32(reg_val, reg_addr_virtyal);
+	reg_value = ioread32(reg_addr_virtyal);
+	iounmap(reg_addr_virtyal);
+
+	return 0;
+}
 
 static ssize_t physlin_read_proc(struct file* filp, char* buf, size_t count, loff_t* offp)
 {
@@ -75,6 +147,14 @@ static ssize_t physlin_write_proc(struct file* filp, const char* buf,size_t coun
 	}
 
 	data_from_user[count] = '\0';
+
+	if (str_containt_addr_and_val(data_from_user)) {
+		if (write_val_in_reg_by_str(data_from_user)) {
+			printk(KERN_ERR "<%s> can't write val in reg by str", __func__);
+			return -EFAULT;
+		}
+		return count;
+	}
 
 	ret = read_reg_by_str(data_from_user, &reg_val);
 	if (ret) {
