@@ -4,7 +4,7 @@
 #include <linux/slab.h>
 
 #define PROC_ENTRY_PATH "physlin"
-#define ADDR_AND_VAL_SEPARATOR 'W'
+#define ADDR_AND_VAL_SEPARATOR 'w'
 
 static struct proc_dir_entry* physlin_entry = NULL;
 static u32 reg_value = 0;

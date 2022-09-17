@@ -58,14 +58,14 @@ cat /proc/physlin
 ## Запись
 
 ~~~~
-echo {physical_addr} W {value} > /proc/physlin
+echo {physical_addr} w {value} > /proc/physlin
 ~~~~
 
 Пример:
 Предположим, что требуется записать число 0xFF по адресу 0x6176c017.
 
 ~~~~
-echo 0x6176c017 W 0xFF > /proc/physlin
+echo 0x6176c017 w 0xFF > /proc/physlin
 ~~~~
 
 После записи значения, модуль прочитает содержимое по указанному адресу. В данном примере, в случае успешной записи 
