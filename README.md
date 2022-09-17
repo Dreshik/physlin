@@ -41,6 +41,12 @@ echo {physical_addr} > /proc/physlin
 cat /proc/physlin
 ~~~~
 
+или
+
+~~~~
+physlin.sh {physical_addr}
+~~~~
+
 Пример:
 Допустим нам необходимо узнать содержимое по адресу 0x6176c017.
 Для этого необходимо записать адрес в /proc/physlin.
@@ -59,6 +65,12 @@ cat /proc/physlin
 
 ~~~~
 echo {physical_addr} w {value} > /proc/physlin
+~~~~
+
+или
+
+~~~~
+physlin.sh {physical_addr} {value}
 ~~~~
 
 Пример:
