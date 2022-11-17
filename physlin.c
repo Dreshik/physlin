@@ -2,9 +2,15 @@
 #include <linux/proc_fs.h>
 #include <asm/io.h>
 #include <linux/slab.h>
+#include <linux/uaccess.h>
+#include <linux/version.h>
 
 #define PROC_ENTRY_PATH "physlin"
 #define ADDR_AND_VAL_SEPARATOR 'w'
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+#define USE_PROC_OPS
+#endif
 
 static struct proc_dir_entry* physlin_entry = NULL;
 static u32 reg_value = 0;
@@ -167,10 +173,17 @@ static ssize_t physlin_write_proc(struct file* filp, const char* buf,size_t coun
 	return count;
 }
 
-struct proc_ops proc_physlin_ops = {
+#ifdef USE_PROC_OPS
+static const struct proc_ops proc_physlin_ops = {
 	.proc_read = physlin_read_proc,
 	.proc_write = physlin_write_proc
 };
+#else
+static const struct file_operations proc_physlin_ops = {
+	.read = physlin_read_proc,
+	.write = physlin_write_proc
+};
+#endif
 
 static int physlin_proc_init(void)
 {
